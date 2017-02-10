@@ -14,6 +14,8 @@ pub fn extract_database_url<'a>(url: &'a str) -> Result<Cow<'a, str>, String> {
                 format!("Failed to load environment variable {}: {}",
                     var_name, e.description())
             })
+    } else if url.starts_with("config:") {
+        get_database_url_from_config(&url[6..])
     } else {
         Ok(Cow::Borrowed(url))
     }
@@ -31,6 +33,19 @@ fn load_dotenv_file() -> Result<(), String> {
 fn load_dotenv_file() -> Result<(), String> {
     Err(String::from("The dotenv feature is required to use strings starting \
         with `dotenv:`"))
+}
+
+#[cfg(feature = "config")]
+fn get_database_url_from_config<'a, 'b>(key: &'a str) -> Result<Cow<'b, str>, String> {
+    use config;
+
+    config::get_str(key).ok_or_else(|| format!("configuration property {} is not defined", key))
+}
+
+#[cfg(not(feature = "config"))]
+fn get_database_url_from_config() -> Result<(), String> {
+    Err(String::from("The config feature is required to use strings starting \
+        with `config:`"))
 }
 
 #[test]
